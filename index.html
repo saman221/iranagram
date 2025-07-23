@@ -1,1 +1,50 @@
+<!DOCTYPE html>
+<html lang="fa">
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="container">
+    <h2 id="form-title">ورود به سام‌گرام</h2>
+    <input type="email" id="email" placeholder="ایمیل">
+    <input type="password" id="password" placeholder="رمز عبور">
+    <button onclick="handleAuth()">ورود</button>
+    <div class="switch" onclick="toggleMode()">حساب نداری؟ ثبت‌نام کن</div>
+  </div>
 
+  <script type="module">
+    import { createClient } from 'https://esm.sh/@supabase/supabase-js'
+
+    const supabaseUrl = 'https://ukrtcjeaoatyxkafuspo.supabase.co'
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVrcnRjamVhb2F0eXhrYWZ1c3BvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMyNzA3MTIsImV4cCI6MjA2ODg0NjcxMn0.zpUFnWA3c7MHsDPjQGSGBqWuYwEhN-TeFRhSTI4upQg'
+    const supabase = createClient(supabaseUrl, supabaseKey)
+
+    let isLogin = true
+
+    window.toggleMode = () => {
+      isLogin = !isLogin
+      document.getElementById('form-title').innerText = isLogin ? 'ورود به سام‌گرام' : 'ثبت‌نام در سام‌گرام'
+      document.querySelector('button').innerText = isLogin ? 'ورود' : 'ثبت‌نام'
+      document.querySelector('.switch').innerText = isLogin ? 'حساب نداری؟ ثبت‌نام کن' : 'حساب داری؟ وارد شو'
+    }
+
+    window.handleAuth = async () => {
+      const email = document.getElementById('email').value
+      const password = document.getElementById('password').value
+
+      let result
+      if (isLogin) {
+        result = await supabase.auth.signInWithPassword({ email, password })
+      } else {
+        result = await supabase.auth.signUp({ email, password })
+      }
+
+      if (result.error) {
+        alert('❌ خطا: ' + result.error.message)
+      } else {
+        alert('✅ موفقیت‌آمیز بود!')
+        window.location.href = 'home.html' // صفحه بعد از ورود
+      }
+    }
+  </script>
+</body>
+</html>

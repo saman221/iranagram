@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="fa">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>پروفایل کاربر | سام‌گرام</title>
+<link rel="stylesheet" href="style.css" />
+
+</head>
+<body>
+  <header>پروفایل کاربر</header>
+  <div id="profile-info">در حال بارگذاری...</div>
+  <button id="follow-btn" onclick="toggleFollow()">دنبال کردن</button>
+  <div id="posts"></div>
+
+  <script type="module">
+    import { createClient } from 'https://esm.sh/@supabase/supabase-js'
+
+    const supabaseUrl = 'https://ukrtcjeaoatyxkafuspo.supabase.co'
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVrcnRjamVhb2F0eXhrYWZ1c3BvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMyNzA3MTIsImV4cCI6MjA2ODg0NjcxMn0.zpUFnWA3c7MHsDPjQGSGBqWuYwEhN-TeFRhSTI4upQg'
+    const supabase = createClient(supabaseUrl, supabaseKey)
+
+    function getUserIdFromURL() {
+      const params = new URLSearchParams(window.location.search)
+      return params.get('user_id')
+    }
+
+    let viewedUserId = getUserIdFromURL()
+    let currentUser = null
+    let isFollowing = false
+
+    async function loadProfile() {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        window.location.href = 'index.html'
+        return
+      }
+      currentUser = user
+
+      if (!viewedUserId) {
+        document.getElementById('profile-info').innerText = 'شناسه کاربر مشخص نیست.'
+        return
+      }
+
+      if (viewedUserId === currentUser.id) {
+        window.location.href = 'profile.html'
+        return
+      }
+
+      // گرفتن اطلاعات پروفایل عمومی
+      const { data: profile, error: profileError } = await supabase
+        .from('public_profiles')
+        .select('email, bio')
+        .eq('user_id', viewedUserId)
+        .single()
+
+      if (profileError || !profile) {
+        document.getElementById('profile-info').innerText = 'کاربر پیدا نشد.'
+        return
+      }
+
+      document.getElementById('profile-info').innerHTML = `
+        <p><strong>ایمیل:</strong> ${profile.email}</p>
+        <p><strong>درباره:</strong> ${profile.bio || 'ندارد'}</p>
+      `
+
+      // گرفتن پست‌ها
+      const { data: posts, error: postsError } = await supabase
+        .from('posts')
+        .select('*')
+        .eq('user_id', viewedUserId)
+        .order('created_at', { ascending: false })
+
+      const postContainer = document.getElementById('posts')
+
+      if (postsError) {
+        postContainer.innerHTML = '<p>خطا در دریافت پست‌ها</p>'
+      } else if (posts.length === 0) {
+        postContainer.innerHTML = '<p>کاربر هنوز پستی نگذاشته است.</p>'
+      } else {
+        posts.forEach(post => {
+          const el = document.createElement('div')
+          el.className = 'post'
+          el.innerHTML = `
+            <img src="${post.image_url}" alt="پست کاربر">
+            <p>${post.content}</p>
+          `
+          postContainer.appendChild(el)
+        })
+      }
+
+      // نمایش دکمه فالو و وضعیتش
+      await checkFollowStatus()
+      const followBtn = document.getElementById('follow-btn')
+      followBtn.style.display = 'inline-block'
+      updateFollowBtn()
+    }
+
+    async function checkFollowStatus() {
+      const { data, error } = await supabase
+        .from('follow')
+        .select('*')
+        .eq('follower_id', currentUser.id)
+        .eq('followed_id', viewedUserId)
+        .single()
+
+      isFollowing = !!data
+    }
+
+    async function toggleFollow() {
+      if (isFollowing) {
+        const { error } = await supabase
+          .from('follow')
+          .delete()
+          .eq('follower_id', currentUser.id)
+          .eq('followed_id', viewedUserId)
+        if (error) alert('خطا در آنفالو: ' + error.message)
+        else isFollowing = false
+      } else {
+        const { error } = await supabase
+          .from('follow')
+          .insert([{ follower_id: currentUser.id, followed_id: viewedUserId }])
+        if (error) alert('خطا در فالو: ' + error.message)
+        else isFollowing = true
+      }
+      updateFollowBtn()
+    }
+
+    function updateFollowBtn() {
+      const btn = document.getElementById('follow-btn')
+      btn.innerText = isFollowing ? 'دنبال‌شده' : 'دنبال کردن'
+      btn.style.backgroundColor = isFollowing ? '#555' : '#ff0055'
+    }
+
+    loadProfile()
+  </script>
+  <nav class="bottom-nav">
+  <a href="home.html" class="active">
+    <span>🏠</span>
+    <span>خانه</span>
+  </a>
+  <a href="upload.html">
+    <span>➕</span>
+    <span>ارسال</span>
+  </a>
+  <a href="profile.html">
+    <span>👤</span>
+    <span>پروفایل</span>
+  </a>
+</nav>
+
+</body>
+</html>

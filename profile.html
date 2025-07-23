@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="fa">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>پروفایل من | سام‌گرام</title>
+<link rel="stylesheet" href="style.css" />
+
+</head>
+<body>
+  <header>پروفایل من</header>
+  <div id="profile">
+    <div id="profile-info">در حال بارگذاری...</div>
+    <button id="logout-btn" onclick="logout()">خروج از حساب</button>
+  </div>
+  <div id="posts"></div>
+
+  <script type="module">
+    import { createClient } from 'https://esm.sh/@supabase/supabase-js'
+
+    const supabaseUrl = 'https://ukrtcjeaoatyxkafuspo.supabase.co'
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVrcnRjamVhb2F0eXhrYWZ1c3BvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMyNzA3MTIsImV4cCI6MjA2ODg0NjcxMn0.zpUFnWA3c7MHsDPjQGSGBqWuYwEhN-TeFRhSTI4upQg'
+    const supabase = createClient(supabaseUrl, supabaseKey)
+
+    // گرفتن اطلاعات کاربر
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      window.location.href = 'index.html'
+    }
+
+    document.getElementById('profile-info').innerHTML = `
+      <p><strong>ایمیل:</strong> ${user.email}</p>
+      <p><strong>شناسه:</strong> ${user.id}</p>
+    `
+
+    // گرفتن پست‌های کاربر
+    const { data: posts, error } = await supabase
+      .from('posts')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+
+    const postContainer = document.getElementById('posts')
+
+    if (error) {
+      postContainer.innerHTML = '<p>خطا در دریافت پست‌ها</p>'
+    } else if (posts.length === 0) {
+      postContainer.innerHTML = '<p>شما هنوز هیچ پستی نگذاشته‌اید.</p>'
+    } else {
+      posts.forEach(post => {
+        const el = document.createElement('div')
+        el.className = 'post'
+        el.innerHTML = `
+          <img src="${post.image_url}" alt="پست شما">
+          <p>${post.content}</p>
+        `
+        postContainer.appendChild(el)
+      })
+    }
+
+    // خروج
+    window.logout = async () => {
+      await supabase.auth.signOut()
+      window.location.href = 'index.html'
+    }
+  </script>
+  <nav class="bottom-nav">
+  <a href="home.html" class="active">
+    <span>🏠</span>
+    <span>خانه</span>
+  </a>
+  <a href="upload.html">
+    <span>➕</span>
+    <span>ارسال</span>
+  </a>
+  <a href="profile.html">
+    <span>👤</span>
+    <span>پروفایل</span>
+  </a>
+</nav>
+
+</body>
+</html>

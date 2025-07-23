@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="fa">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>خانه | سام‌گرام</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body class="home-body">
+  <header>سام‌گرام 📸</header>
+  <button id="logout-btn">خروج</button>
+  <main id="posts">
+    <!-- پست‌ها اینجا لود می‌شن -->
+  </main>
+<nav class="bottom-nav">
+  <a href="home.html" class="active">
+    <span>🏠</span>
+    <span>خانه</span>
+  </a>
+  <a href="upload.html">
+    <span>➕</span>
+    <span>ارسال</span>
+  </a>
+  <a href="profile.html">
+    <span>👤</span>
+    <span>پروفایل</span>
+  </a>
+</nav>
+
+  <script type="module">
+    import { createClient } from 'https://esm.sh/@supabase/supabase-js'
+
+    const supabaseUrl = 'https://ukrtcjeaoatyxkafuspo.supabase.co'  // اینو عوض کن
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVrcnRjamVhb2F0eXhrYWZ1c3BvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMyNzA3MTIsImV4cCI6MjA2ODg0NjcxMn0.zpUFnWA3c7MHsDPjQGSGBqWuYwEhN-TeFRhSTI4upQg'             // اینم عوض کن
+    const supabase = createClient(supabaseUrl, supabaseKey)
+
+    // چک لاگین
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      window.location.href = 'index.html'
+    }
+
+    // بارگذاری پست‌ها
+    const { data: posts, error } = await supabase
+      .from('posts')
+      .select('*')
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      alert('خطا در بارگذاری پست‌ها: ' + error.message)
+    } else {
+      const container = document.getElementById('posts')
+      posts.forEach(post => {
+        const el = document.createElement('div')
+        el.className = 'post'
+        el.innerHTML = `
+          <img src="${post.image_url}" alt="پست تصویری" />
+          <div class="post-content">
+            <p>${post.content}</p>
+            <div class="timestamp">${new Date(post.created_at).toLocaleString('fa-IR')}</div>
+          </div>
+        `
+        container.appendChild(el)
+      })
+    }
+
+    // خروج
+    document.getElementById('logout-btn').addEventListener('click', async () => {
+      await supabase.auth.signOut()
+      window.location.href = 'index.html'
+    })
+  </script>
+</body>
+</html>

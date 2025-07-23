@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="fa">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ارسال پست | سام‌گرام</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <h2>ارسال پست جدید 📸</h2>
+  <form onsubmit="handleUpload(event)">
+    <textarea id="content" rows="3" placeholder="متن پست..."></textarea>
+    <input type="file" id="image" accept="image/*" required />
+    <button type="submit">ارسال پست</button>
+  </form>
+  <div class="back-link" onclick="window.location.href='home.html'">بازگشت به خانه</div>
+
+  <script type="module">
+    import { createClient } from 'https://esm.sh/@supabase/supabase-js'
+
+    const supabaseUrl = 'https://ukrtcjeaoatyxkafuspo.supabase.co'
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVrcnRjamVhb2F0eXhrYWZ1c3BvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMyNzA3MTIsImV4cCI6MjA2ODg0NjcxMn0.zpUFnWA3c7MHsDPjQGSGBqWuYwEhN-TeFRhSTI4upQg'
+    const supabase = createClient(supabaseUrl, supabaseKey)
+
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      window.location.href = 'index.html'
+    }
+
+    window.handleUpload = async (event) => {
+      event.preventDefault()
+
+      const content = document.getElementById('content').value
+      const file = document.getElementById('image').files[0]
+      const fileName = `${Date.now()}_${file.name}`
+
+      // آپلود عکس به storage
+      const { data: storageData, error: storageError } = await supabase
+        .storage
+        .from('post-images')
+        .upload(fileName, file)
+
+      if (storageError) {
+        alert('خطا در آپلود عکس: ' + storageError.message)
+        return
+      }
+
+      const imageUrl = `${supabaseUrl}/storage/v1/object/public/post-images/${fileName}`
+
+      // ثبت پست در جدول
+      const { error: insertError } = await supabase
+        .from('posts')
+        .insert([{
+          user_id: user.id,
+          content: content,
+          image_url: imageUrl
+        }])
+
+      if (insertError) {
+        alert('خطا در ذخیره پست: ' + insertError.message)
+      } else {
+        alert('✅ پست با موفقیت ارسال شد!')
+        window.location.href = 'home.html'
+      }
+    }
+  </script>
+<nav class="bottom-nav">
+  <a href="home.html" class="active">
+    <span>🏠</span>
+    <span>خانه</span>
+  </a>
+  <a href="upload.html">
+    <span>➕</span>
+    <span>ارسال</span>
+  </a>
+  <a href="profile.html">
+    <span>👤</span>
+    <span>پروفایل</span>
+  </a>
+</nav>
+
+</body>
+</html>
