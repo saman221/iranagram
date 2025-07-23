@@ -4,11 +4,11 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>ارسال پست | سام‌گرام</title>
-<link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="style.css" />
 </head>
-<body>
+<body class="upload-body">
   <h2>ارسال پست جدید 📸</h2>
-  <form onsubmit="handleUpload(event)">
+  <form onsubmit="handleUpload(event)" class="upload-form">
     <textarea id="content" rows="3" placeholder="متن پست..."></textarea>
     <input type="file" id="image" accept="image/*" required />
     <button type="submit">ارسال پست</button>
@@ -28,56 +28,73 @@
     }
 
     window.handleUpload = async (event) => {
-      event.preventDefault()
+      event.preventDefault();
 
-      const content = document.getElementById('content').value
-      const file = document.getElementById('image').files[0]
-      const fileName = `${Date.now()}_${file.name}`
+      const content = document.getElementById('content').value;
+      const file = document.getElementById('image').files[0];
 
-      // آپلود عکس به storage
+      function sanitizeFileName(name) {
+        return name.replace(/\s+/g, '_').replace(/[^\w\-\.]+/g, '');
+      }
+
+      const safeName = sanitizeFileName(file.name);
+      const filePath = `post-images/${Date.now()}_${safeName}`;
+
+      // آپلود فایل
       const { data: storageData, error: storageError } = await supabase
         .storage
         .from('post-images')
-        .upload(fileName, file)
+        .upload(filePath, file);
 
       if (storageError) {
-        alert('خطا در آپلود عکس: ' + storageError.message)
-        return
+        alert('خطا در آپلود عکس: ' + storageError.message);
+        return;
       }
 
-      const imageUrl = `${supabaseUrl}/storage/v1/object/public/post-images/${fileName}`
+      // گرفتن URL عمومی
+      const { data: publicUrlData, error: publicUrlError } = supabase
+        .storage
+        .from('post-images')
+        .getPublicUrl(filePath);
 
-      // ثبت پست در جدول
+      if (publicUrlError) {
+        alert('خطا در گرفتن لینک عکس: ' + publicUrlError.message);
+        return;
+      }
+
+      const imageUrl = publicUrlData.publicUrl;
+
+      // ثبت پست تو جدول
       const { error: insertError } = await supabase
         .from('posts')
         .insert([{
           user_id: user.id,
           content: content,
           image_url: imageUrl
-        }])
+        }]);
 
       if (insertError) {
-        alert('خطا در ذخیره پست: ' + insertError.message)
+        alert('خطا در ذخیره پست: ' + insertError.message);
       } else {
-        alert('✅ پست با موفقیت ارسال شد!')
-        window.location.href = 'home.html'
+        alert('✅ پست با موفقیت ارسال شد!');
+        window.location.href = 'home.html';
       }
     }
   </script>
-<nav class="bottom-nav">
-  <a href="home.html" class="active">
-    <span>🏠</span>
-    <span>خانه</span>
-  </a>
-  <a href="upload.html">
-    <span>➕</span>
-    <span>ارسال</span>
-  </a>
-  <a href="profile.html">
-    <span>👤</span>
-    <span>پروفایل</span>
-  </a>
-</nav>
 
+  <nav class="bottom-nav">
+    <a href="home.html" class="active">
+      <span>🏠</span>
+      <span>خانه</span>
+    </a>
+    <a href="upload.html">
+      <span>➕</span>
+      <span>ارسال</span>
+    </a>
+    <a href="profile.html">
+      <span>👤</span>
+      <span>پروفایل</span>
+    </a>
+  </nav>
 </body>
 </html>
